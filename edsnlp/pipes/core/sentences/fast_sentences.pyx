@@ -38,6 +38,8 @@ cdef class FastSentenceSegmenter(object):
             ignore_excluded = True,
             check_capitalized = True,
             min_newline_count = 1,
+            use_bullet_start = False,
+            bullet_starters = None,
     ):
         if punct_chars is None:
             punct_chars = punctuation
@@ -57,8 +59,12 @@ cdef class FastSentenceSegmenter(object):
         self.min_newline_count = min_newline_count
         self.capitalized_shapes_hash = {
             vocab.strings[shape]
-            for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx") if check_capitalized else ())
+            for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx",) if check_capitalized else ())
         }
+        self.use_bullet_start = use_bullet_start
+        if bullet_starters is None:
+            bullet_starters = ["-"]
+        self.bullet_starter_hash = {vocab.strings[c] for c in bullet_starters}
 
     def __call__(self, doc: spacy.tokens.Doc):
         self.process(doc)
@@ -117,14 +123,27 @@ cdef class FastSentenceSegmenter(object):
                         newline_count = 0
                         seen_period = False
                     else:
-                        doc.c[i].sent_start = (
-                            1 if not self.check_capitalized or (
-                                    self.capitalized_shapes_hash.const_find(token.lex.shape)
-                                    != self.capitalized_shapes_hash.const_end()
-                            ) else -1
-                        )
-                        newline_count = 0
-                        seen_period = False
+                        with gil :
+                            doc.c[i].sent_start = (
+                                1 if (
+                                    not self.check_capitalized or (
+                                        self.capitalized_shapes_hash.const_find(token.lex.shape)
+                                        != self.capitalized_shapes_hash.const_end()
+                                    )
+                                ) or (
+                                    self.use_bullet_start and (
+                                        self.bullet_starter_hash.const_find(token.lex.orth)
+                                        != self.bullet_starter_hash.const_end()
+                                    )
+                                ) else -1
+                            )
+                            doc.c[i].token_bullet_start = (
+                                self.bullet_starter_hash.const_find(token.lex.orth)
+                                != self.bullet_starter_hash.const_end()
+                            )
+
+                            newline_count = 0
+                            seen_period = False
                     continue
             if is_in_punct_chars:
                 seen_period = True

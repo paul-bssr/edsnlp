@@ -87,6 +87,10 @@ class SentenceSegmenter(BaseComponent):
         Whether to check for capitalized words after newlines or full stops.
     min_newline_count: int
         The minimum number of newlines to consider a newline-triggered sentence.
+    use_bullet_start: bool
+        Whether to check for bullet starters after newlines or full stops.
+    bullet_starters: Optional[List[str]]
+        Bullet starters characters.
 
     Authors and citation
     --------------------
@@ -102,6 +106,8 @@ class SentenceSegmenter(BaseComponent):
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
         min_newline_count: int = 1,
+        use_bullet_start: bool = False,
+        bullet_starters: Optional[List[str]] = None,
     ):
         super().__init__(nlp, name)
         if min_newline_count > 1 and nlp.lang != "eds":
@@ -120,6 +126,8 @@ class SentenceSegmenter(BaseComponent):
             ignore_excluded=ignore_excluded,
             check_capitalized=check_capitalized,
             min_newline_count=min_newline_count,
+            use_bullet_start=use_bullet_start,
+            bullet_starters=bullet_starters,
         )
 
     def __call__(self, doc: Doc):
