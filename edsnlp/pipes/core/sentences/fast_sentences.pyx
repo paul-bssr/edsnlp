@@ -37,6 +37,7 @@ cdef class FastSentenceSegmenter(object):
             use_endlines = None,
             ignore_excluded = True,
             check_capitalized = True,
+            capitalized_shapes = None,
             min_newline_count = 1,
             use_bullet_start = False,
             bullet_starters = None,
@@ -57,9 +58,13 @@ cdef class FastSentenceSegmenter(object):
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.check_capitalized = check_capitalized
         self.min_newline_count = min_newline_count
+        if capitalized_shapes is None :
+            capitalized_shapes = ("X'", "Xx", "Xxx", "Xxxx", "Xxxxx",)
+        else :
+            capitalized_shapes = tuple(capitalized_shapes)
         self.capitalized_shapes_hash = {
             vocab.strings[shape]
-            for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx",) if check_capitalized else ())
+            for shape in (capitalized_shapes if check_capitalized else ())
         }
         self.use_bullet_start = use_bullet_start
         if bullet_starters is None:
@@ -95,7 +100,6 @@ cdef class FastSentenceSegmenter(object):
         for i in range(doc.length):
             # To set the attributes at False by default for the other tokens
             doc.c[i].sent_start = 1 if i == 0 else -1
-
             token = doc.c[i]
 
             if self.ignore_excluded and token.tag == self.excluded_hash:
@@ -116,34 +120,34 @@ cdef class FastSentenceSegmenter(object):
                 if not (
                         is_in_punct_chars
                         or is_newline
-                        or Lexeme.c_check_flag(token.lex, IS_PUNCT)
+                        or (
+                            Lexeme.c_check_flag(token.lex, IS_PUNCT) and (
+                                self.bullet_starter_hash.const_find(token.lex.orth)
+                                == self.bullet_starter_hash.const_end()
+                            )
+                        )
                 ):
                     if seen_period:
                         doc.c[i].sent_start = 1
                         newline_count = 0
                         seen_period = False
                     else:
-                        with gil :
-                            doc.c[i].sent_start = (
-                                1 if (
-                                    not self.check_capitalized or (
-                                        self.capitalized_shapes_hash.const_find(token.lex.shape)
-                                        != self.capitalized_shapes_hash.const_end()
-                                    )
-                                ) or (
-                                    self.use_bullet_start and (
-                                        self.bullet_starter_hash.const_find(token.lex.orth)
-                                        != self.bullet_starter_hash.const_end()
-                                    )
-                                ) else -1
-                            )
-                            doc.c[i].token_bullet_start = (
-                                self.bullet_starter_hash.const_find(token.lex.orth)
-                                != self.bullet_starter_hash.const_end()
-                            )
+                        doc.c[i].sent_start = (
+                            1 if (
+                                not self.check_capitalized or (
+                                    self.capitalized_shapes_hash.const_find(token.lex.shape)
+                                    != self.capitalized_shapes_hash.const_end()
+                                )
+                            ) or (
+                                self.use_bullet_start and (
+                                    self.bullet_starter_hash.const_find(token.lex.orth)
+                                    != self.bullet_starter_hash.const_end()
+                                )
+                            ) else -1
+                        )
 
-                            newline_count = 0
-                            seen_period = False
+                        newline_count = 0
+                        seen_period = False
                     continue
             if is_in_punct_chars:
                 seen_period = True
