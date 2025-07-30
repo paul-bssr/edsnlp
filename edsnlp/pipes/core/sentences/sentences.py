@@ -85,6 +85,8 @@ class SentenceSegmenter(BaseComponent):
         Whether to ignore excluded tokens.
     check_capitalized: bool
         Whether to check for capitalized words after newlines or full stops.
+    capitalized_shapes: Optional[List[str]]
+        Capitalized shapes.
     min_newline_count: int
         The minimum number of newlines to consider a newline-triggered sentence.
     use_bullet_start: bool
@@ -105,6 +107,7 @@ class SentenceSegmenter(BaseComponent):
         use_endlines: Optional[bool] = None,
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
+        capitalized_shapes: Optional[List[str]] = None,
         min_newline_count: int = 1,
         use_bullet_start: bool = False,
         bullet_starters: Optional[List[str]] = None,
@@ -125,6 +128,7 @@ class SentenceSegmenter(BaseComponent):
             use_endlines=use_endlines,
             ignore_excluded=ignore_excluded,
             check_capitalized=check_capitalized,
+            capitalized_shapes=capitalized_shapes,
             min_newline_count=min_newline_count,
             use_bullet_start=use_bullet_start,
             bullet_starters=bullet_starters,
