@@ -109,10 +109,12 @@ cdef class FastSentenceSegmenter(object):
                     self.punct_chars_hash.const_find(token.lex.orth)
                     != self.punct_chars_hash.const_end()
             )
-            is_newline = (
-                    Lexeme.c_check_flag(token.lex, IS_SPACE)
-                    and token.lex.orth == self.newline_hash
-            )
+
+            is_newline = (token.lex.orth == self.newline_hash)
+            if not is_newline:
+                with gil:
+                    ctext = (<object>doc)[i].text
+                    is_newline = ('\n' in ctext) or ('\r' in ctext)
 
             if seen_period or newline_count >= self.min_newline_count:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
