@@ -7,8 +7,10 @@ from libcpp cimport bool as cbool
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
 from spacy.tokens.token cimport TokenC
+from spacy.tokens.doc cimport Doc
 
 from .terms import punctuation
+
 
 cdef class FastSentenceSegmenter(object):
     """
@@ -58,14 +60,13 @@ cdef class FastSentenceSegmenter(object):
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.check_capitalized = check_capitalized
         self.min_newline_count = min_newline_count
-        if capitalized_shapes is None :
-            capitalized_shapes = ("X'", "Xx", "Xxx", "Xxxx", "Xxxxx",)
-        else :
-            capitalized_shapes = tuple(capitalized_shapes)
-        self.capitalized_shapes_hash = {
-            vocab.strings[shape]
-            for shape in (capitalized_shapes if check_capitalized else ())
-        }
+
+        if self.check_capitalized and capitalized_shapes is not None:
+            shapes = tuple(capitalized_shapes)
+        else:
+            shapes = ()
+        self.capitalized_shapes_hash = {vocab.strings[shape] for shape in shapes}
+
         self.use_bullet_start = use_bullet_start
         if bullet_starters is None:
             bullet_starters = ["-"]
@@ -86,7 +87,6 @@ cdef class FastSentenceSegmenter(object):
         """
         cdef TokenC token
         cdef cbool seen_period
-        cdef cbool seen_newline
         cdef cbool is_in_punct_chars
         cdef cbool is_newline
         cdef int newline_count

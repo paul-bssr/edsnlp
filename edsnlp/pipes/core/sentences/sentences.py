@@ -4,6 +4,7 @@ from typing import List, Optional
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.utils.shapes import DEFAULT_CAPITALIZED_SHAPES, LEGACY_CAPITALIZED_SHAPES
 
 from ...base import BaseComponent
 from .fast_sentences import FastSentenceSegmenter
@@ -85,6 +86,12 @@ class SentenceSegmenter(BaseComponent):
         Whether to ignore excluded tokens.
     check_capitalized: bool
         Whether to check for capitalized words after newlines or full stops.
+    capitalized_mode : Optional[str], {"legacy", "expanded"}, default "legacy"
+        Selects the preset of capitalized shapes used when `check_capitalized=True`
+        and no explicit `capitalized_shapes` are provided.
+        - "legacy": historical set of shapes ("X'", "Xx", "Xxx", "Xxxx", "Xxxxx",).
+        - "expanded": extended set including ALL-CAPS and long Title Case patterns,
+          improving detection of section headers.
     capitalized_shapes: Optional[List[str]]
         Capitalized shapes.
     min_newline_count: int
@@ -107,6 +114,7 @@ class SentenceSegmenter(BaseComponent):
         use_endlines: Optional[bool] = None,
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
+        capitalized_mode: Optional[str] = "legacy",
         capitalized_shapes: Optional[List[str]] = None,
         min_newline_count: int = 1,
         use_bullet_start: bool = False,
@@ -121,6 +129,18 @@ class SentenceSegmenter(BaseComponent):
 
         if punct_chars is None:
             punct_chars = punctuation
+
+        if check_capitalized:
+            if capitalized_shapes is not None:
+                capitalized_shapes = tuple(capitalized_shapes)
+            else:
+                capitalized_shapes = (
+                    LEGACY_CAPITALIZED_SHAPES
+                    if capitalized_mode == "legacy"
+                    else DEFAULT_CAPITALIZED_SHAPES
+                )
+        else:
+            capitalized_shapes = ()
 
         self.fast_segmenter = FastSentenceSegmenter(
             vocab=nlp.vocab,
