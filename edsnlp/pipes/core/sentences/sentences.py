@@ -20,7 +20,8 @@ class SentenceSegmenter(BaseComponent):
     sentence, a strategy that often fails in a clinical note settings. Our
     `eds.sentences` component also classifies end-of-lines as sentence boundaries if
     the subsequent token begins with an uppercase character, leading to slightly better
-    performances.
+    performances. It can additionally leverage capitalized section headers and
+    bullet-like list starters, which are frequent in structured medical documents.
 
     Moreover, the `eds.sentences` component use the output of the `eds.normalizer`
     and `eds.endlines` output by default when these components are added to the
